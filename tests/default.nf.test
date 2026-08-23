@@ -4,13 +4,27 @@ nextflow_pipeline {
     script "../main.nf"
     tag "pipeline"
 
-    test("-profile test") {
+    test("Stub pipeline run") {
+
+        setup {
+            def stage_cmd = [
+                'bash', '-c',
+                "mkdir -p tests/data && cp -r ${projectDir}/tests/data/* tests/data/"
+            ]
+            def proc = stage_cmd.execute(null, new File(launchDir))
+            proc.waitFor()
+            if (proc.exitValue() != 0) {
+                throw new RuntimeException("Failed to stage stub test data: ${proc.err.text}")
+            }
+        }
 
         when {
             params {
                 outdir = "$outputDir"
             }
         }
+
+        // Profile supplied via CLI: nf-test test tests/default.nf.test --profile test
 
         then {
             // stable_path: All files + folders in ${params.outdir}/ with a stable path (including file name)
@@ -21,7 +35,7 @@ nextflow_pipeline {
             assertAll(
                 { assert snapshot(
                     // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
-                    removeNextflowVersion("$outputDir/pipeline_info/nf_core_novelspecies_software_mqc_versions.yml"),
+                    removeNextflowVersion("$outputDir/pipeline_info/nf_core_novelspecies_software_versions.yml"),
                     // All stable path name, with a relative path
                     stable_path,
                     // All files with stable contents

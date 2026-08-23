@@ -6,6 +6,7 @@
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_novelspecies_pipeline'
+include { SPECIES_DELIMITATION   } from '../subworkflows/local/species_delimitation/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -17,11 +18,20 @@ workflow NOVELSPECIES {
 
     take:
     ch_samplesheet // channel: samplesheet read in from --input
+    samplesheet_path
     outdir
 
     main:
 
-    def ch_versions = channel.empty()
+    ch_versions = channel.empty()
+
+    SPECIES_DELIMITATION(
+        ch_samplesheet,
+        samplesheet_path,
+        outdir,
+    )
+
+    ch_versions = ch_versions.mix(SPECIES_DELIMITATION.out.versions)
 
     //
     // Collate and save software versions
@@ -51,8 +61,12 @@ workflow NOVELSPECIES {
             sort: true,
             newLine: true
         )
+
     emit:
-    versions       = ch_versions                 // channel: [ path(versions.yml) ]
+    summary     = SPECIES_DELIMITATION.out.summary
+    report      = SPECIES_DELIMITATION.out.report
+    assignments = SPECIES_DELIMITATION.out.assignments
+    versions    = ch_versions
 }
 
 /*

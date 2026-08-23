@@ -1,0 +1,2 @@
+sample	genus	ref_accession	ref_organism	formula	hsp_count	hsp_identity_fraction	gbdp_distance_d4	ddh_formula2	hsp_coverage_percent	ddh_method
+Bp_query	Buchnera	GCF_000007365.1	Buchnera aphidicola str. Sg	GGDC_formula_2_d4	16	0.753827	0.246173	8.40	75.38	local_blast

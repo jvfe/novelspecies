@@ -1,0 +1,70 @@
+nextflow_pipeline {
+
+    name "Integration test with Buchnera genomes"
+    script "../main.nf"
+    tag "integration"
+
+    test("Buchnera species delimitation with local dDDH") {
+
+        setup {
+            def stage_cmd = [
+                'bash', '-c',
+                "mkdir -p tests/data/integration && cp -r ${projectDir}/tests/data/integration/* tests/data/integration/"
+            ]
+            def proc = stage_cmd.execute(null, new File(launchDir))
+            proc.waitFor()
+            if (proc.exitValue() != 0) {
+                throw new RuntimeException("Failed to stage integration test data: ${proc.err.text}")
+            }
+        }
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def summary = path("$outputDir/species_delimitation_summary.tsv")
+            assert summary.exists()
+            assert summary.readLines().size() >= 3  // header + 2 queries
+
+            def summary_text = summary.text
+            assert summary_text.contains("Bp_query")
+            assert summary_text.contains("APS_query")
+            assert summary_text.contains("Buchnera")
+            assert summary_text.contains("GCF_000007365.1")
+
+            assert summary_text.contains("novel_species_candidate")
+
+            def ani_tsv = path("$outputDir/ani/Buchnera_query_vs_reference.tsv")
+            assert ani_tsv.exists()
+            assert ani_tsv.text.contains("Bp_query")
+            assert ani_tsv.text.contains("GCF_000007365.1")
+
+            assert summary_text.contains("8.40") || summary_text.contains("5.90")
+
+            def ani_files = new File("$outputDir/ani").listFiles().findAll { it.name.endsWith(".tsv") }
+            assert ani_files.size() >= 1
+
+            def ddh_files = new File("$outputDir/ddh/pairwise").listFiles().findAll { it.name.endsWith(".tsv") }
+            assert ddh_files.size() >= 2
+
+            def stable_path = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: [
+                'pipeline_info/*.{html,json,txt}',
+                '**/versions.yml',
+            ])
+            def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
+
+            assertAll(
+                { assert snapshot(
+                    removeNextflowVersion("$outputDir/pipeline_info/nf_core_novelspecies_software_versions.yml"),
+                    stable_path,
+                    stable_content
+                ).match() }
+            )
+        }
+    }
+}

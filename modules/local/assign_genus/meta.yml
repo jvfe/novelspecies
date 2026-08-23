@@ -1,0 +1,33 @@
+name: assign_genus
+description: Assign a target bacterial genus to each query genome
+keywords:
+  - taxonomy
+  - genus
+  - gtdbtk
+tools:
+  - assign_genus:
+      description: Local helper script to merge samplesheet, GTDB-Tk and genus map inputs
+      licence: ["MIT"]
+input:
+  - - samplesheet:
+        type: file
+        description: Input samplesheet CSV
+    - gtdbtk_summary:
+        type: file
+        description: Optional GTDB-Tk bac120 summary TSV
+        optional: true
+    - genus_map:
+        type: file
+        description: Optional manual genus map CSV
+        optional: true
+output:
+  - assignments:
+      - sample_assignments.tsv:
+          type: file
+          description: TSV with sample, fasta, genus and genus_source columns
+  - versions:
+      - versions.yml:
+          type: file
+          description: File containing software versions
+authors:
+  - "@jvfe"

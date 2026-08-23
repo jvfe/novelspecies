@@ -1,0 +1,15 @@
+ASSIGN_GENUS:
+  assign_genus: 1.0.0
+FASTANI_INTRA_GENUS:
+  fastani: 1.34
+FASTANI_QUERY_VS_REFERENCE:
+  fastani: 1.34
+GBDP_DDH:
+  blast: 2.16.0+
+SELECT_DDH_PAIRS:
+  select_ddh_pairs: 1.0.0
+SPECIES_DECISION:
+  species_decision: 1.0.0
+Workflow:
+    nf-core/novelspecies: v1.0.0dev
+    Nextflow: 26.04.6

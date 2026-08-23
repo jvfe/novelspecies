@@ -1,0 +1,2 @@
+/home/jvfe/dev/bioinfo/novelspecies/.nf-test/tests/8f5a99d13111df4ce46dafa941f7633f/work/99/4e6e53983b829db7e9b4b7686deb61/queries/Bp_query.fna
+/home/jvfe/dev/bioinfo/novelspecies/.nf-test/tests/8f5a99d13111df4ce46dafa941f7633f/work/99/4e6e53983b829db7e9b4b7686deb61/queries/APS_query.fna

@@ -1,2 +1,10 @@
 .DS_Store
 pipeline_info/*.{html,json,txt,yml}
+**/versions.yml
+prepare/query_list.txt
+reference/genus_manifests/**/ref_list.txt
+reference/genus_manifests/**/references.tsv
+select/ddh_pairs.tsv
+species_delimitation_summary.tsv
+summary/species_delimitation_summary.tsv
+summary/species_delimitation_report.html

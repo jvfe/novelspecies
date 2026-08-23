@@ -1,0 +1,5 @@
+query	reference	ani_percent	comparison_type
+Bp_query	Bp_query	100.00	intra_genus
+Bp_query	APS_query	77.02	intra_genus
+APS_query	APS_query	100.00	intra_genus
+APS_query	Bp_query	76.86	intra_genus

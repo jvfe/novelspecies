@@ -13,21 +13,20 @@
                 "errorMessage": "Sample name must be provided and cannot contain spaces",
                 "meta": ["id"]
             },
-            "fastq_1": {
+            "fasta": {
                 "type": "string",
                 "format": "file-path",
                 "exists": true,
-                "pattern": "^([\\S\\s]*\\/)?[^\\s\\/]+\\.f(ast)?q\\.gz$",
-                "errorMessage": "FastQ file for reads 1 must be provided, cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
+                "pattern": "^\\S+\\.(fasta|fa|fna|fas|seq)(\\.gz)?$",
+                "errorMessage": "Genome assembly FASTA must be provided, cannot contain spaces and must have extension '.fasta', '.fa', '.fna', '.fas' or '.seq', optionally gzipped"
             },
-            "fastq_2": {
+            "genus": {
                 "type": "string",
-                "format": "file-path",
-                "exists": true,
-                "pattern": "^([\\S\\s]*\\/)?[^\\s\\/]+\\.f(ast)?q\\.gz$",
-                "errorMessage": "FastQ file for reads 2 cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                "errorMessage": "Genus, if given, must be a single word without spaces",
+                "meta": ["genus"]
             }
         },
-        "required": ["sample", "fastq_1"]
+        "required": ["sample", "fasta"]
     }
 }

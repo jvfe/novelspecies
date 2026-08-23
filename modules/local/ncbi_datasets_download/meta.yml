@@ -1,0 +1,40 @@
+name: ncbi_datasets_download
+description: Download genus-level RefSeq assemblies from NCBI Datasets and build a type-strain reference manifest
+keywords:
+  - ncbi
+  - datasets
+  - type strain
+  - reference genome
+tools:
+  - ncbi-datasets-cli:
+      description: NCBI Datasets command-line client
+      homepage: https://www.ncbi.nlm.nih.gov/datasets/docs/v2/download-and-install/
+      documentation: https://www.ncbi.nlm.nih.gov/datasets/docs/v2/
+      licence: ["Public Domain"]
+      identifier: biotools:ncbi_datasets
+input:
+  - - meta:
+        type: map
+        description: Groovy map with at least genus key
+    - genus:
+        type: string
+        description: Target bacterial genus
+output:
+  - references:
+      - - meta:
+            type: map
+        - references.tsv:
+            type: file
+            description: Filtered reference manifest with FASTA paths and metadata
+  - ref_list:
+      - - meta:
+            type: map
+        - ref_list.txt:
+            type: file
+            description: Newline-delimited list of reference FASTA paths for FastANI
+  - versions:
+      - versions.yml:
+          type: file
+          description: File containing software versions
+authors:
+  - "@jvfe"

@@ -1,0 +1,3 @@
+sample	predicted_genus	closest_type_strain	closest_type_strain_name	top_fastani_identity	top_ddh_formula2	ddh_method_used	taxonomic_verdict	is_novel_candidate
+Bp_query	Buchnera	GCF_000007365.1	Buchnera aphidicola str. Sg	76.85	8.40	local_blast	novel_species_candidate	true
+APS_query	Buchnera	GCF_000007365.1	Buchnera aphidicola str. Sg	79.94	5.90	local_blast	novel_species_candidate	true

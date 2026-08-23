@@ -1,0 +1,70 @@
+{
+    "Buchnera species delimitation with local dDDH": {
+        "content": [
+            {
+                "ASSIGN_GENUS": {
+                    "assign_genus": "1.0.0"
+                },
+                "FASTANI_INTRA_GENUS": {
+                    "fastani": 1.34
+                },
+                "FASTANI_QUERY_VS_REFERENCE": {
+                    "fastani": 1.34
+                },
+                "GBDP_DDH": {
+                    "blast": "2.16.0+"
+                },
+                "SELECT_DDH_PAIRS": {
+                    "select_ddh_pairs": "1.0.0"
+                },
+                "SPECIES_DECISION": {
+                    "species_decision": "1.0.0"
+                },
+                "Workflow": {
+                    "nf-core/novelspecies": "v1.0.0dev"
+                }
+            },
+            [
+                "ani",
+                "ani/Buchnera_intra_genus.tsv",
+                "ani/Buchnera_query_vs_reference.tsv",
+                "assign",
+                "assign/sample_assignments.tsv",
+                "ddh",
+                "ddh/pairwise",
+                "ddh/pairwise/APS_query_vs_GCF_000007365.1.tsv",
+                "ddh/pairwise/Bp_query_vs_GCF_000007365.1.tsv",
+                "pipeline_info",
+                "pipeline_info/nf_core_novelspecies_software_versions.yml",
+                "prepare",
+                "prepare/query_list.txt",
+                "reference",
+                "reference/genus_manifests",
+                "reference/genus_manifests/Buchnera",
+                "reference/genus_manifests/Buchnera/ref_list.txt",
+                "reference/genus_manifests/Buchnera/references.tsv",
+                "reference/genus_manifests/Buchnera/staged_refs",
+                "reference/genus_manifests/Buchnera/staged_refs/GCF_000007365.1.fna",
+                "select",
+                "select/ddh_pairs.tsv",
+                "species_delimitation_summary.tsv",
+                "summary",
+                "summary/species_delimitation_report.html",
+                "summary/species_delimitation_summary.tsv"
+            ],
+            [
+                "Buchnera_intra_genus.tsv:md5,0462d13eda30910ce3f2998f5906a594",
+                "Buchnera_query_vs_reference.tsv:md5,65f602e5eed5a222a8b534d545b37a75",
+                "sample_assignments.tsv:md5,d9a296d3397854d9cfadb21f26fbe660",
+                "APS_query_vs_GCF_000007365.1.tsv:md5,017bab9c2147b4ffe7a332abb9da0565",
+                "Bp_query_vs_GCF_000007365.1.tsv:md5,cc781dc12f90ab867cf6d4229b7f7ca0",
+                "GCF_000007365.1.fna:md5,a955f51c63f6abf0f60d3820a760d05f"
+            ]
+        ],
+        "timestamp": "2026-08-22T17:32:40.996583714",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.6"
+        }
+    }
+}

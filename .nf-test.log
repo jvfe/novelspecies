@@ -1,0 +1,16 @@
+Aug-22 17:35:54.801 [main] INFO  com.askimed.nf.test.App - nf-test 0.9.5
+Aug-22 17:35:54.814 [main] INFO  com.askimed.nf.test.App - Arguments: [test, tests/integration.nf.test, --profile, test_integration,docker]
+Aug-22 17:35:55.654 [main] INFO  com.askimed.nf.test.App - Nextflow Version: 26.04.6
+Aug-22 17:35:55.655 [main] INFO  com.askimed.nf.test.commands.RunTestsCommand - Load config from file /home/jvfe/dev/bioinfo/novelspecies/nf-test.config...
+Aug-22 17:35:56.349 [main] INFO  com.askimed.nf.test.lang.dependencies.DependencyResolver - Loaded 26 files from directory /home/jvfe/dev/bioinfo/novelspecies in 0.042 sec
+Aug-22 17:35:56.351 [main] INFO  com.askimed.nf.test.lang.dependencies.DependencyResolver - Found 1 files containing tests.
+Aug-22 17:35:56.352 [main] DEBUG com.askimed.nf.test.lang.dependencies.DependencyResolver - Found files: [/home/jvfe/dev/bioinfo/novelspecies/tests/integration.nf.test]
+Aug-22 17:35:56.718 [main] INFO  com.askimed.nf.test.commands.RunTestsCommand - Found 1 tests to execute.
+Aug-22 17:35:56.719 [main] INFO  com.askimed.nf.test.core.TestExecutionEngine - Started test plan
+Aug-22 17:35:56.719 [main] INFO  com.askimed.nf.test.core.TestExecutionEngine - Running testsuite 'Integration test with Buchnera genomes' from file '/home/jvfe/dev/bioinfo/novelspecies/tests/integration.nf.test'.
+Aug-22 17:35:56.719 [main] INFO  com.askimed.nf.test.core.TestExecutionEngine - Run test '8f5a99d1: Buchnera species delimitation with local dDDH'. type: com.askimed.nf.test.lang.pipeline.PipelineTest
+Aug-22 17:36:12.661 [main] DEBUG com.askimed.nf.test.lang.extensions.SnapshotFile - Load snapshots from file '/home/jvfe/dev/bioinfo/novelspecies/tests/integration.nf.test.snap'
+Aug-22 17:36:12.686 [main] DEBUG com.askimed.nf.test.lang.extensions.Snapshot - Snapshots 'Buchnera species delimitation with local dDDH' match.
+Aug-22 17:36:12.687 [main] INFO  com.askimed.nf.test.core.TestExecutionEngine - Test '8f5a99d1: Buchnera species delimitation with local dDDH' finished. status: PASSED
+Aug-22 17:36:12.689 [main] INFO  com.askimed.nf.test.core.TestExecutionEngine - Testsuite 'Integration test with Buchnera genomes' finished. snapshot file: true, skipped tests: false, failed tests: false
+Aug-22 17:36:12.689 [main] INFO  com.askimed.nf.test.core.TestExecutionEngine - Executed 1 tests. 0 tests failed. Done!

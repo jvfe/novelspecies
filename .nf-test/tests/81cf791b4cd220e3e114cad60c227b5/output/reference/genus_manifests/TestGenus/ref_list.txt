@@ -1,0 +1,1 @@
+/home/jvfe/dev/bioinfo/novelspecies/.nf-test/tests/81cf791b4cd220e3e114cad60c227b5/work/42/777eca3f20c0c1a65d18d64409b62c/genus_manifests/TestGenus/staged_refs/GCF_TYPE.1.fna

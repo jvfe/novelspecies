@@ -39,6 +39,7 @@ workflow NFCORE_NOVELSPECIES {
     //
     NOVELSPECIES (
         samplesheet,
+        file(params.input),
         params.outdir,
     )
 }
