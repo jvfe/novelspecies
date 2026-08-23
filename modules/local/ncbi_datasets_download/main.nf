@@ -3,9 +3,8 @@ process NCBI_DATASETS_DOWNLOAD {
     label 'process_medium'
 
     conda "${moduleDir}/environment.yml"
-    container "${ workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/ncbi-datasets-cli:18.35.0--h4c2b0d6_0' :
-        'quay.io/staphb/ncbi-datasets:18.35.0' }"
+    // Galaxy Depot has no working ncbi-datasets-cli 18.x SIF; StaphB image works with Apptainer/Singularity via ociAutoPull
+    container 'quay.io/staphb/ncbi-datasets:18.35.0'
 
     input:
     tuple val(meta), val(genus)
