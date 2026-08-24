@@ -232,11 +232,18 @@ workflow SPECIES_DELIMITATION {
                 .collect { fasta -> [ fasta.baseName, fasta ] }
         }
 
+    // The same GCF can be staged for several GTDB genera (e.g. Bacillus and
+    // Bacillus_A both download NCBI Bacillus type strains). Deduplicate so
+    // combine() does not fan out identical BLAST jobs with colliding filenames.
     ch_ref_fasta_by_accession = ch_reference_tables
         .flatMap { _meta, _references, _ref_list, staged_refs ->
             staged_refs.listFiles()
                 .findAll { it.name.endsWith('.fna') }
                 .collect { fasta -> [ fasta.baseName, fasta ] }
+        }
+        .groupTuple()
+        .map { accession, fastas ->
+            [ accession, fastas instanceof Collection ? fastas[0] : fastas ]
         }
 
     ch_ddh_jobs = ch_ddh_pairs_for_local
@@ -259,6 +266,7 @@ workflow SPECIES_DELIMITATION {
         .map { _ref_accession, meta, query_fasta, reference_fasta ->
             [ meta, query_fasta, reference_fasta ]
         }
+        .unique { tuple -> "${tuple[0].id}::${tuple[0].ref_accession}" }
 
     GBDP_DDH(
         ch_ddh_jobs,

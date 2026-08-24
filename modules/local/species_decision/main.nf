@@ -9,8 +9,8 @@ process SPECIES_DECISION {
 
     input:
     path assignments
-    path query_ani
-    path ddh_results
+    path query_ani, stageAs: 'ani_inputs/?'
+    path ddh_results, stageAs: 'ddh_inputs/?'
     path pairs
 
     output:
@@ -21,41 +21,17 @@ process SPECIES_DECISION {
     script:
     """
     shopt -s nullglob
-    if [ -f "${query_ani}" ]; then
-        cp "${query_ani}" query_ani_merged.tsv
-    elif [ -d "${query_ani}" ]; then
-        merge_tsv.py \\
-            --inputs ${query_ani}/*.tsv \\
-            --output query_ani_merged.tsv
-    else
-        merge_tsv.py \\
-            --inputs ${query_ani} \\
-            --output query_ani_merged.tsv
+    merge_tsv.py \\
+        --inputs ani_inputs/* \\
+        --output query_ani_merged.tsv
+
+    if [ ! -s query_ani_merged.tsv ]; then
+        printf 'query\\treference\\tani_percent\\tsample\\tgenus\\tref_accession\\n' > query_ani_merged.tsv
     fi
 
-    if ls *_vs_*.tsv >/dev/null 2>&1; then
-        ddh_files=()
-        for f in *_vs_*.tsv; do
-            if head -n 1 "\$f" | grep -q 'ddh_formula2'; then
-                ddh_files+=( "\$f" )
-            fi
-        done
-        if [ \${#ddh_files[@]} -gt 0 ]; then
-            merge_tsv.py \\
-                --inputs "\${ddh_files[@]}" \\
-                --output ddh_merged.tsv
-        fi
-    elif [ -f "${ddh_results}" ]; then
-        cp "${ddh_results}" ddh_merged.tsv
-    elif [ -d "${ddh_results}" ]; then
-        merge_tsv.py \\
-            --inputs ${ddh_results}/*.tsv \\
-            --output ddh_merged.tsv
-    else
-        merge_tsv.py \\
-            --inputs ${ddh_results} \\
-            --output ddh_merged.tsv
-    fi
+    merge_tsv.py \\
+        --inputs ddh_inputs/* \\
+        --output ddh_merged.tsv
 
     if [ ! -s ddh_merged.tsv ]; then
         printf 'sample\\tgenus\\tref_accession\\tref_organism\\tddh_formula2\\tddh_method\\n' > ddh_merged.tsv
@@ -74,19 +50,13 @@ process SPECIES_DECISION {
         --borderline-high ${params.ani_borderline_high} \\
         --ddh-method ${params.ddh_method}
 
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        species_decision: 1.0.0
-    END_VERSIONS
+    printf '%s\\n' '"${task.process}":' '    species_decision: "1.0.0"' > versions.yml
     """
 
     stub:
     """
     printf 'sample\\tpredicted_genus\\tclosest_type_strain\\tclosest_type_strain_name\\ttop_fastani_identity\\ttop_ddh_formula2\\tddh_method_used\\ttaxonomic_verdict\\tis_novel_candidate\\nS1\\tGenus\\tGCF.1\\tOrganism\\t96.00\\t72.00\\tlocal\\tnovel_species_candidate\\ttrue\\n' > species_delimitation_summary.tsv
     echo '<html><body>summary</body></html>' > species_delimitation_report.html
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        species_decision: 1.0.0
-    END_VERSIONS
+    printf '%s\\n' '"${task.process}":' '    species_decision: "1.0.0"' > versions.yml
     """
 }
