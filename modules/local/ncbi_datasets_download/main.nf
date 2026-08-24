@@ -90,10 +90,7 @@ process NCBI_DATASETS_DOWNLOAD {
         --no-progressbar \\
         --filename ncbi_dataset.zip
 
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        ncbi-datasets-cli: \$(datasets --version 2>&1 | sed 's/datasets version: //')
-    END_VERSIONS
+    printf '%s\\n' '"${task.process}":' '    ncbi-datasets-cli: "18.35.0"' > versions.yml
     """
 
     stub:
@@ -102,9 +99,6 @@ process NCBI_DATASETS_DOWNLOAD {
     echo 'GCF_STUB.1' >> assembly_report.tsv
     echo 'GCF_STUB.1' > accessions.txt
     echo PK > ncbi_dataset.zip
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        ncbi-datasets-cli: 18.35.0
-    END_VERSIONS
+    printf '%s\\n' '"${task.process}":' '    ncbi-datasets-cli: "18.35.0"' > versions.yml
     """
 }

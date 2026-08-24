@@ -54,10 +54,7 @@ PY
         --references-tsv references.tsv \\
         --ref-list ref_list.txt
 
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        ncbi_datasets_stage: 1.0.0
-    END_VERSIONS
+    printf '%s\\n' '"${task.process}":' '    ncbi_datasets_stage: "1.0.0"' > versions.yml
     """
 
     stub:
@@ -66,9 +63,6 @@ PY
     printf 'genus\\taccession\\torganism_name\\tstrain\\tassembly_level\\tgenome_size\\tis_type_strain\\tselection_mode\\tfasta\\n${meta.genus}\\tGCF_STUB.1\\t${meta.genus} sp.\\tTYPE\\tComplete Genome\\t5000000\\ttrue\\ttype_material\\tstaged_refs/GCF_STUB.1.fna\\n' > references.tsv
     echo 'staged_refs/GCF_STUB.1.fna' > ref_list.txt
     touch staged_refs/GCF_STUB.1.fna
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        ncbi_datasets_stage: 1.0.0
-    END_VERSIONS
+    printf '%s\\n' '"${task.process}":' '    ncbi_datasets_stage: "1.0.0"' > versions.yml
     """
 }
