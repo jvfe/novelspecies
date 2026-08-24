@@ -1,7 +1,4 @@
-# NCBI datasets CLI is provided by the StaPH-B container image (18.35.0).
-# Conda fallback uses the same major version where available.
 channels:
   - conda-forge
-  - bioconda
 dependencies:
-  - python=3.12
+  - ncbi-datasets-cli=18.35.0

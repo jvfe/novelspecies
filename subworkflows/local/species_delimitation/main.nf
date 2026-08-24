@@ -7,6 +7,7 @@
 include { GUNZIP                      } from '../../../modules/nf-core/gunzip/main'
 include { ASSIGN_GENUS                } from '../../../modules/local/assign_genus/main'
 include { NCBI_DATASETS_DOWNLOAD      } from '../../../modules/local/ncbi_datasets_download/main'
+include { NCBI_DATASETS_STAGE         } from '../../../modules/local/ncbi_datasets_stage/main'
 include { REFERENCE_SHEET_TO_MANIFEST } from '../../../modules/local/reference_sheet_to_manifest/main'
 include { PREPARE_QUERY_LIST          } from '../../../modules/local/prepare_query_list/main'
 include { FASTANI_QUERY_VS_REFERENCE  } from '../../../modules/local/fastani_query_vs_reference/main'
@@ -126,6 +127,11 @@ workflow SPECIES_DELIMITATION {
     )
     ch_versions = ch_versions.mix(NCBI_DATASETS_DOWNLOAD.out.versions)
 
+    NCBI_DATASETS_STAGE(
+        NCBI_DATASETS_DOWNLOAD.out.package,
+    )
+    ch_versions = ch_versions.mix(NCBI_DATASETS_STAGE.out.versions)
+
     ch_reference_tables_from_sheet = REFERENCE_SHEET_TO_MANIFEST.out.manifests
         .flatMap { manifest_dir ->
             manifest_dir.listFiles()
@@ -137,9 +143,9 @@ workflow SPECIES_DELIMITATION {
                 }
         }
 
-    ch_reference_tables_from_ncbi = NCBI_DATASETS_DOWNLOAD.out.references
-        .join(NCBI_DATASETS_DOWNLOAD.out.ref_list)
-        .join(NCBI_DATASETS_DOWNLOAD.out.staged_refs)
+    ch_reference_tables_from_ncbi = NCBI_DATASETS_STAGE.out.references
+        .join(NCBI_DATASETS_STAGE.out.ref_list)
+        .join(NCBI_DATASETS_STAGE.out.staged_refs)
         .map { meta, references, ref_list, staged_refs -> [ meta, references, ref_list, staged_refs ] }
 
     ch_reference_tables = ch_reference_tables_from_sheet
