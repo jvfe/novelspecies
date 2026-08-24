@@ -41,13 +41,13 @@
                 "summary/species_delimitation_summary.tsv"
             ],
             [
-                "TestGenus_intra_genus.tsv:md5,d043ec58059bc95f275b07177203c27f",
-                "TestGenus_query_vs_reference.tsv:md5,d043ec58059bc95f275b07177203c27f",
-                "sample_assignments.tsv:md5,edf1ea1646d553b3267591f1608324a5",
-                "GCF_TYPE.1.fna:md5,87a6f1a96f9a313bc1ee9248455935c0"
+                "TestGenus_intra_genus.tsv:md5,e34edd69a62368a10fae8f62f68a3683",
+                "TestGenus_query_vs_reference.tsv:md5,448b25fda3666a43497ae591d4dbd6ac",
+                "sample_assignments.tsv:md5,0506050945e28139a420f09ec9291dcd",
+                "GCF_TYPE.1.fna:md5,d41d8cd98f00b204e9800998ecf8427e"
             ]
         ],
-        "timestamp": "2026-08-22T17:35:37.302203715",
+        "timestamp": "2026-08-24T10:08:01.521980789",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"

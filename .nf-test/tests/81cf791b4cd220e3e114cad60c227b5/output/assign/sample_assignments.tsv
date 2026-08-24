@@ -1,3 +1,0 @@
-sample	fasta	genus	genus_source
-MT1012	/home/jvfe/dev/bioinfo/novelspecies/tests/data/MT1012.fasta	TestGenus	samplesheet
-MT1013	/home/jvfe/dev/bioinfo/novelspecies/tests/data/MT1013.fasta	TestGenus	samplesheet

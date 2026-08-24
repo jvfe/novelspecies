@@ -20,7 +20,7 @@ input:
         type: string
         description: Target bacterial genus
 output:
-  - package:
+  - dataset:
       - - meta:
             type: map
         - ncbi_dataset.zip:

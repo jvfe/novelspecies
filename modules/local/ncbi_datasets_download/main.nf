@@ -12,7 +12,7 @@ process NCBI_DATASETS_DOWNLOAD {
     tuple val(meta), val(genus)
 
     output:
-    tuple val(meta), path("ncbi_dataset.zip"), path("assembly_report.tsv"), emit: package
+    tuple val(meta), path("ncbi_dataset.zip"), path("assembly_report.tsv"), emit: dataset
     path "versions.yml"                                                  , emit: versions
 
     when:

@@ -1,2 +1,0 @@
-genus	accession	organism_name	strain	assembly_level	genome_size	is_type_strain	selection_mode	fasta
-Buchnera	GCF_000007365.1	Buchnera aphidicola str. Sg	Sg (Schizaphis graminum)			true	reference_sheet	/home/jvfe/dev/bioinfo/novelspecies/.nf-test/tests/8f5a99d13111df4ce46dafa941f7633f/work/a4/ab0582fb72b96ad7ddf8276ab6630a/genus_manifests/Buchnera/staged_refs/GCF_000007365.1.fna

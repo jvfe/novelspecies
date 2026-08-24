@@ -128,7 +128,7 @@ workflow SPECIES_DELIMITATION {
     ch_versions = ch_versions.mix(NCBI_DATASETS_DOWNLOAD.out.versions)
 
     NCBI_DATASETS_STAGE(
-        NCBI_DATASETS_DOWNLOAD.out.package,
+        NCBI_DATASETS_DOWNLOAD.out.dataset,
     )
     ch_versions = ch_versions.mix(NCBI_DATASETS_STAGE.out.versions)
 

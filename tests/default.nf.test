@@ -25,6 +25,7 @@ nextflow_pipeline {
         }
 
         // Profile supplied via CLI: nf-test test tests/default.nf.test --profile test
+        options "-stub"
 
         then {
             // stable_path: All files + folders in ${params.outdir}/ with a stable path (including file name)
