@@ -23,32 +23,68 @@ process NCBI_DATASETS_DOWNLOAD {
     def reference_arg = params.reference_only ? "--reference" : ""
     def atypical_arg  = params.exclude_atypical ? "--exclude-atypical" : ""
     def annotated_arg = params.annotated_only ? "--annotated" : ""
+    def type_only     = params.type_material_only ? '--type-material-only' : ''
+    def fallback      = params.allow_non_type_fallback ? '--allow-non-type-fallback' : ''
     """
-    datasets download genome taxon "${genus}" \\
+    datasets summary genome taxon "${genus}" \\
         --assembly-source ${params.assembly_source} \\
         --assembly-level ${params.assembly_level} \\
-        --include genome \\
         ${reference_arg} \\
         ${atypical_arg} \\
         ${annotated_arg} \\
         ${api_key_arg} \\
-        --no-progressbar \\
-        --filename ncbi_dataset.zip
+        --as-json-lines \\
+        > assembly_summary.jsonl
 
-    unzip -qq ncbi_dataset.zip
+    if [ ! -s assembly_summary.jsonl ]; then
+        echo "ERROR: NCBI returned no assemblies for taxon '${genus}'" >&2
+        exit 1
+    fi
 
     dataformat tsv genome \\
-        --inputfile ncbi_dataset/data/assembly_data_report.jsonl \\
+        --inputfile assembly_summary.jsonl \\
         --force \\
         --fields accession,organism-name,organism-infraspecific-strain,assminfo-level,assminfo-name,assmstats-total-sequence-len,source_database,type_material-label,type_material-display_text \\
         > assembly_report.tsv
 
     prepare_reference_manifest.py \\
         --report-tsv assembly_report.tsv \\
+        --genus "${genus}" \\
+        ${type_only} \\
+        ${fallback} \\
+        --max-references ${params.max_references_per_genus} \\
+        --accessions-out accessions.txt
+
+    datasets download genome accession \\
+        --inputfile accessions.txt \\
+        --include genome \\
+        ${api_key_arg} \\
+        --no-progressbar \\
+        --filename ncbi_dataset.zip
+
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - <<'PY'
+import zipfile
+from pathlib import Path
+archive = Path("ncbi_dataset.zip")
+if not archive.exists() or archive.stat().st_size == 0:
+    raise SystemExit("ERROR: NCBI dataset zip is missing or empty")
+with zipfile.ZipFile(archive) as handle:
+    handle.extractall()
+PY
+    elif command -v unzip >/dev/null 2>&1; then
+        unzip -qq ncbi_dataset.zip
+    else
+        echo "ERROR: need python3 or unzip to extract ncbi_dataset.zip" >&2
+        exit 127
+    fi
+
+    prepare_reference_manifest.py \\
+        --report-tsv assembly_report.tsv \\
         --data-dir ncbi_dataset/data \\
         --genus "${genus}" \\
-        ${params.type_material_only ? '--type-material-only' : ''} \\
-        ${params.allow_non_type_fallback ? '--allow-non-type-fallback' : ''} \\
+        ${type_only} \\
+        ${fallback} \\
         --max-references ${params.max_references_per_genus} \\
         --references-tsv references.raw.tsv \\
         --ref-list ref_list.raw.txt

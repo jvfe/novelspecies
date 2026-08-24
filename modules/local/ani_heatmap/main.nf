@@ -21,6 +21,9 @@ process ANI_HEATMAP {
     script:
     def prefix = task.ext.prefix ?: "${meta.genus}"
     """
+    export MPLCONFIGDIR="\$PWD/mplconfig"
+    mkdir -p "\$MPLCONFIGDIR"
+
     ani_heatmap.py \\
         --ani-tsv ${ani_tsv} \\
         --genus "${meta.genus}" \\

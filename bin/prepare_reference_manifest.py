@@ -19,13 +19,14 @@ TYPE_MATERIAL_LABELS = {
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report-tsv", required=True, type=Path)
-    parser.add_argument("--data-dir", required=True, type=Path)
+    parser.add_argument("--data-dir", type=Path, default=None)
     parser.add_argument("--genus", required=True)
     parser.add_argument("--type-material-only", action="store_true")
     parser.add_argument("--allow-non-type-fallback", action="store_true")
     parser.add_argument("--max-references", type=int, default=50)
-    parser.add_argument("--references-tsv", required=True, type=Path)
-    parser.add_argument("--ref-list", required=True, type=Path)
+    parser.add_argument("--accessions-out", type=Path, default=None)
+    parser.add_argument("--references-tsv", type=Path, default=None)
+    parser.add_argument("--ref-list", type=Path, default=None)
     return parser.parse_args()
 
 
@@ -89,12 +90,7 @@ def rank_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
     return sorted(rows, key=sort_key)
 
 
-def main() -> None:
-    args = parse_args()
-    rows = read_report(args.report_tsv)
-    if not rows:
-        raise ValueError(f"No assemblies found in report for genus '{args.genus}'")
-
+def select_rows(rows: list[dict[str, str]], args: argparse.Namespace) -> tuple[list[dict[str, str]], str]:
     selected = rows
     selection_mode = "all_assemblies"
     if args.type_material_only:
@@ -110,8 +106,26 @@ def main() -> None:
                 f"No type-material assemblies found for genus '{args.genus}'. "
                 "Use --allow-non-type-fallback or disable --type_material_only."
             )
+    return rank_rows(selected)[: args.max_references], selection_mode
 
-    selected = rank_rows(selected)[: args.max_references]
+
+def main() -> None:
+    args = parse_args()
+    rows = read_report(args.report_tsv)
+    if not rows:
+        raise ValueError(f"No assemblies found in report for genus '{args.genus}'")
+
+    selected, selection_mode = select_rows(rows, args)
+
+    if args.accessions_out:
+        args.accessions_out.parent.mkdir(parents=True, exist_ok=True)
+        args.accessions_out.write_text("\n".join(row["accession"] for row in selected) + "\n")
+        if args.data_dir is None:
+            return
+
+    if args.data_dir is None or args.references_tsv is None or args.ref_list is None:
+        raise ValueError("Provide --data-dir, --references-tsv and --ref-list after genomes are downloaded")
+
     references: list[dict[str, str]] = []
     for row in selected:
         fasta = find_fasta(args.data_dir, row["accession"])
