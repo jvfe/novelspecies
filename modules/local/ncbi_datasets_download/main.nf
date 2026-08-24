@@ -12,7 +12,7 @@ process NCBI_DATASETS_DOWNLOAD {
     tuple val(meta), val(genus)
 
     output:
-    tuple val(meta), path("ncbi_dataset.zip"), path("assembly_report.tsv"), emit: dataset
+    tuple val(meta), path("ncbi_dataset.zip"), path("assembly_report.tsv"), path("accessions.txt"), emit: dataset
     path "versions.yml"                                                  , emit: versions
 
     when:
@@ -100,6 +100,7 @@ process NCBI_DATASETS_DOWNLOAD {
     """
     echo 'accession' > assembly_report.tsv
     echo 'GCF_STUB.1' >> assembly_report.tsv
+    echo 'GCF_STUB.1' > accessions.txt
     echo PK > ncbi_dataset.zip
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

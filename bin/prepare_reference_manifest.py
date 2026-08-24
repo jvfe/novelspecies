@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gzip
+import shutil
 import sys
 from pathlib import Path
 
@@ -14,6 +16,12 @@ TYPE_MATERIAL_LABELS = {
     "type material",
     "assembly from type material",
 }
+
+SKIP_FASTA_SUBSTRINGS = (
+    "cds_from_genomic",
+    "rna_from_genomic",
+    "translated_cds",
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -25,23 +33,72 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--allow-non-type-fallback", action="store_true")
     parser.add_argument("--max-references", type=int, default=50)
     parser.add_argument("--accessions-out", type=Path, default=None)
+    parser.add_argument("--downloaded-accessions", type=Path, default=None)
+    parser.add_argument("--staged-dir", type=Path, default=None)
     parser.add_argument("--references-tsv", type=Path, default=None)
     parser.add_argument("--ref-list", type=Path, default=None)
     return parser.parse_args()
 
 
+def discover_data_dir(start: Path) -> Path:
+    if start.is_dir():
+        if any(start.rglob("*_genomic.fna*")) or any(start.rglob("*.fna*")):
+            return start
+        nested = start / "ncbi_dataset" / "data"
+        if nested.is_dir():
+            return nested
+        data = start / "data"
+        if data.is_dir():
+            return data
+    for candidate in Path(".").rglob("assembly_data_report.jsonl"):
+        return candidate.parent
+    for candidate in Path(".").rglob("*_genomic.fna"):
+        return candidate.parent.parent if candidate.parent.name.startswith(("GCF_", "GCA_")) else candidate.parent
+    return start
+
+
+def is_skipped_fasta(path: Path) -> bool:
+    name = path.name.lower()
+    return any(token in name for token in SKIP_FASTA_SUBSTRINGS)
+
+
 def find_fasta(data_dir: Path, accession: str) -> Path | None:
+    accession = accession.strip()
     patterns = [
         f"{accession}*_genomic.fna",
+        f"{accession}*_genomic.fna.gz",
         f"{accession}*.fna",
+        f"{accession}*.fna.gz",
         f"{accession}*.fasta",
+        f"{accession}*.fasta.gz",
         f"{accession}*.fa",
+        f"{accession}*.fa.gz",
+        "genomic.fna",
+        "genomic.fna.gz",
     ]
-    for pattern in patterns:
-        matches = sorted(data_dir.glob(pattern))
+    matches: list[Path] = []
+    accession_dir = data_dir / accession
+    search_roots = [accession_dir, data_dir] if accession_dir.is_dir() else [data_dir]
+    for root in search_roots:
+        for pattern in patterns:
+            for hit in sorted(root.rglob(pattern)):
+                if hit.is_file() and not is_skipped_fasta(hit):
+                    matches.append(hit)
         if matches:
-            return matches[0]
-    return None
+            break
+    if not matches:
+        return None
+    uncompressed = [path for path in matches if not path.name.endswith(".gz")]
+    return (uncompressed or matches)[0]
+
+
+def stage_fasta(src: Path, dst: Path) -> None:
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    if src.name.endswith(".gz"):
+        with gzip.open(src, "rb") as incoming, dst.open("wb") as outgoing:
+            shutil.copyfileobj(incoming, outgoing)
+    else:
+        shutil.copy2(src, dst)
 
 
 def is_type_material(row: dict[str, str]) -> bool:
@@ -93,6 +150,17 @@ def rank_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
 def select_rows(rows: list[dict[str, str]], args: argparse.Namespace) -> tuple[list[dict[str, str]], str]:
     selected = rows
     selection_mode = "all_assemblies"
+    if args.downloaded_accessions and args.downloaded_accessions.exists():
+        wanted = {
+            line.strip()
+            for line in args.downloaded_accessions.read_text().splitlines()
+            if line.strip()
+        }
+        selected = [row for row in rows if row["accession"] in wanted]
+        selection_mode = "downloaded_accessions"
+        if selected:
+            return rank_rows(selected)[: args.max_references], selection_mode
+
     if args.type_material_only:
         typed = [row for row in rows if is_type_material(row)]
         if typed:
@@ -107,6 +175,13 @@ def select_rows(rows: list[dict[str, str]], args: argparse.Namespace) -> tuple[l
                 "Use --allow-non-type-fallback or disable --type_material_only."
             )
     return rank_rows(selected)[: args.max_references], selection_mode
+
+
+def describe_data_dir(data_dir: Path) -> str:
+    files = [str(path) for path in sorted(data_dir.rglob("*")) if path.is_file()]
+    preview = "\n".join(files[:40])
+    extra = f"\n... ({len(files) - 40} more)" if len(files) > 40 else ""
+    return f"{data_dir} ({len(files)} files)\n{preview}{extra}"
 
 
 def main() -> None:
@@ -126,11 +201,21 @@ def main() -> None:
     if args.data_dir is None or args.references_tsv is None or args.ref_list is None:
         raise ValueError("Provide --data-dir, --references-tsv and --ref-list after genomes are downloaded")
 
+    data_dir = discover_data_dir(args.data_dir)
     references: list[dict[str, str]] = []
+    staged_dir = args.staged_dir
+    if staged_dir:
+        staged_dir.mkdir(parents=True, exist_ok=True)
+
     for row in selected:
-        fasta = find_fasta(args.data_dir, row["accession"])
+        fasta = find_fasta(data_dir, row["accession"])
         if fasta is None:
             continue
+        fasta_out = fasta
+        if staged_dir:
+            fasta_out = staged_dir / f"{row['accession']}.fna"
+            stage_fasta(fasta, fasta_out)
+            fasta_out = Path("staged_refs") / fasta_out.name
         references.append(
             {
                 "genus": args.genus,
@@ -141,12 +226,24 @@ def main() -> None:
                 "genome_size": row["genome_size"],
                 "is_type_strain": str(is_type_material(row)).lower(),
                 "selection_mode": selection_mode,
-                "fasta": str(fasta.resolve()),
+                "fasta": fasta_out.as_posix(),
             }
         )
 
     if not references:
-        raise ValueError(f"No downloadable FASTA files found for genus '{args.genus}'")
+        available = []
+        for fasta in data_dir.rglob("*"):
+            if fasta.is_file() and fasta.suffix in {".fna", ".fa", ".fasta", ".gz"}:
+                available.append(fasta.name)
+        extra = ""
+        if available:
+            extra = f" FASTAs present: {', '.join(available[:20])}."
+        raise ValueError(
+            f"No downloadable FASTA files found for genus '{args.genus}' "
+            f"in {describe_data_dir(data_dir)}.{extra} "
+            f"Looked for {len(selected)} selected accessions "
+            f"({', '.join(row['accession'] for row in selected[:10])})."
+        )
 
     args.references_tsv.parent.mkdir(parents=True, exist_ok=True)
     with args.references_tsv.open("w", newline="") as handle:

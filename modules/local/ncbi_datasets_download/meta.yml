@@ -29,6 +29,9 @@ output:
         - assembly_report.tsv:
             type: file
             description: Genome metadata table from dataformat
+        - accessions.txt:
+            type: file
+            description: Accessions included in the downloaded zip
   - versions:
       - versions.yml:
           type: file

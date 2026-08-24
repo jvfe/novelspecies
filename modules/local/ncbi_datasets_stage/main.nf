@@ -8,7 +8,7 @@ process NCBI_DATASETS_STAGE {
         'quay.io/biocontainers/pandas:2.2.1' }"
 
     input:
-    tuple val(meta), path(dataset_zip), path(assembly_report)
+    tuple val(meta), path(dataset_zip), path(assembly_report), path(accessions)
 
     output:
     tuple val(meta), path("references.tsv"), emit: references
@@ -29,42 +29,30 @@ from pathlib import Path
 archive = Path("${dataset_zip}")
 if not archive.exists() or archive.stat().st_size == 0:
     raise SystemExit("ERROR: NCBI dataset zip is missing or empty")
+header = archive.read_bytes()[:4]
+if header[:2] != b"PK":
+    preview = archive.read_text(errors="replace")[:500]
+    raise SystemExit(f"ERROR: NCBI download is not a zip file: {preview}")
 with zipfile.ZipFile(archive) as handle:
     handle.extractall()
 PY
 
+    data_dir=ncbi_dataset/data
+    if [ ! -d "\$data_dir" ]; then
+        data_dir=.
+    fi
+
     prepare_reference_manifest.py \\
         --report-tsv ${assembly_report} \\
-        --data-dir ncbi_dataset/data \\
+        --data-dir "\$data_dir" \\
         --genus "${meta.genus}" \\
+        --downloaded-accessions ${accessions} \\
         ${type_only} \\
         ${fallback} \\
         --max-references ${params.max_references_per_genus} \\
-        --references-tsv references.raw.tsv \\
-        --ref-list ref_list.raw.txt
-
-    mkdir -p staged_refs
-    tail -n +2 references.raw.tsv | while IFS=\$'\\t' read -r genus acc organism strain level size is_type mode fasta; do
-        cp "\$fasta" "staged_refs/\${acc}.fna"
-    done
-
-    python3 <<'PY'
-import csv
-from pathlib import Path
-
-rows = list(csv.DictReader(open("references.raw.tsv"), delimiter="\\t"))
-with open("references.tsv", "w", newline="") as out_handle:
-    writer = csv.DictWriter(out_handle, fieldnames=rows[0].keys(), delimiter="\\t")
-    writer.writeheader()
-    for row in rows:
-        staged = Path("staged_refs") / f"{row['accession']}.fna"
-        row["fasta"] = staged.as_posix()
-        writer.writerow(row)
-
-with open("ref_list.txt", "w") as handle:
-    for row in rows:
-        handle.write(f"{row['fasta']}\\n")
-PY
+        --staged-dir staged_refs \\
+        --references-tsv references.tsv \\
+        --ref-list ref_list.txt
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
