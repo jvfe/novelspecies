@@ -10,7 +10,7 @@ from pathlib import Path
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--inputs", nargs="+", required=True, type=Path)
+    parser.add_argument("--inputs", nargs="*", default=[], type=Path)
     parser.add_argument("--output", required=True, type=Path)
     return parser.parse_args()
 

@@ -8,8 +8,8 @@ process SELECT_DDH_PAIRS {
         'quay.io/biocontainers/pandas:2.2.1' }"
 
     input:
-    path ani_results
-    path references
+    path ani_results, stageAs: 'ani_inputs/?'
+    path references, stageAs: 'ref_inputs/?'
     path assignments
 
     output:
@@ -19,29 +19,13 @@ process SELECT_DDH_PAIRS {
     script:
     """
     shopt -s nullglob
-    if [ -f "${ani_results}" ]; then
-        cp "${ani_results}" query_ani_merged.tsv
-    elif [ -d "${ani_results}" ]; then
-        merge_tsv.py \\
-            --inputs ${ani_results}/*.tsv \\
-            --output query_ani_merged.tsv
-    else
-        merge_tsv.py \\
-            --inputs ${ani_results} \\
-            --output query_ani_merged.tsv
-    fi
+    merge_tsv.py \\
+        --inputs ani_inputs/* \\
+        --output query_ani_merged.tsv
 
-    if [ -f "${references}" ]; then
-        cp "${references}" references_merged.tsv
-    elif [ -d "${references}" ]; then
-        merge_tsv.py \\
-            --inputs ${references}/*.tsv \\
-            --output references_merged.tsv
-    else
-        merge_tsv.py \\
-            --inputs ${references} \\
-            --output references_merged.tsv
-    fi
+    merge_tsv.py \\
+        --inputs ref_inputs/* \\
+        --output references_merged.tsv
 
     select_ddh_pairs.py \\
         --ani-tsv query_ani_merged.tsv \\
@@ -50,18 +34,12 @@ process SELECT_DDH_PAIRS {
         --top-n ${params.ddh_top_n} \\
         --output ddh_pairs.tsv
 
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        select_ddh_pairs: 1.0.0
-    END_VERSIONS
+    printf '%s\\n' '"${task.process}":' '    select_ddh_pairs: "1.0.0"' > versions.yml
     """
 
     stub:
     """
     printf 'sample\\tgenus\\tquery_fasta\\tref_accession\\tref_organism\\treference_fasta\\tani_percent\\trank\\nS1\\tGenus\\tq.fna\\tGCF.1\\tOrganism\\tr.fna\\t96.0\\t1\\n' > ddh_pairs.tsv
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        select_ddh_pairs: 1.0.0
-    END_VERSIONS
+    printf '%s\\n' '"${task.process}":' '    select_ddh_pairs: "1.0.0"' > versions.yml
     """
 }
