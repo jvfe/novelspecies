@@ -23,8 +23,10 @@ process NCBI_DATASETS_DOWNLOAD {
     def reference_arg = params.reference_only ? "--reference" : ""
     def atypical_arg  = params.exclude_atypical ? "--exclude-atypical" : ""
     def annotated_arg = params.annotated_only ? "--annotated" : ""
+    def from_type_arg = params.type_material_only ? "--from-type" : ""
     def type_only     = params.type_material_only ? '1' : '0'
     def fallback      = params.allow_non_type_fallback ? '1' : '0'
+    def max_refs      = params.max_references_per_genus
     """
     genus="${genus}"
     # GTDB placeholder genera (WGS project IDs) are not NCBI taxa, e.g. CAJYPV01, JAADFP01
@@ -34,38 +36,98 @@ process NCBI_DATASETS_DOWNLOAD {
         exit 4
     fi
 
-    resolve_genus="\$genus"
-    summary_ok=0
-    if datasets summary genome taxon "\$resolve_genus" \\
-        --assembly-source ${params.assembly_source} \\
-        --assembly-level ${params.assembly_level} \\
-        ${reference_arg} \\
-        ${atypical_arg} \\
-        ${annotated_arg} \\
-        ${api_key_arg} \\
-        --as-json-lines \\
-        > assembly_summary.jsonl 2>summary.err; then
-        summary_ok=1
-    fi
+    # GTDB satellite genera: Enterococcus_B, Bacillus_AE, Paenibacillus_O
+    stripped=\$(echo "\$genus" | sed -E 's/_[A-Z]+\$//')
 
-    if [ "\$summary_ok" -ne 1 ] || [ ! -s assembly_summary.jsonl ]; then
-        stripped=\$(echo "\$genus" | sed 's/_[A-Z]\$//')
-        if [ "\$stripped" != "\$genus" ] && datasets summary genome taxon "\$stripped" \\
+    : > summary.err
+
+    pick_prokaryote_taxid() {
+        # datasets prints: Bacillus (genus, taxid: 55087, walking sticks)
+        #                  Bacillus (genus, taxid: 1386, firmicutes)
+        grep -oE 'taxid: [0-9]+, [^)]+' "\$1" \\
+            | grep -iE 'firmicutes|proteobacteria|bacter|actinobacteria|spirochetes|cyanobacteria|chlamydiae|tenericutes|fusobacteria|deinococci|thermotogae|planctomycetes|verrucomicrobia|acidobacteria|chloroflexi|synergistetes' \\
+            | grep -oE '[0-9]+' \\
+            | head -n 1
+    }
+
+    run_datasets_summary() {
+        taxon="\$1"
+        shift
+        rm -f assembly_summary.jsonl summary.try.err
+        datasets summary genome taxon "\$taxon" \\
             --assembly-source ${params.assembly_source} \\
-            --assembly-level ${params.assembly_level} \\
+            --limit ${max_refs} \\
+            --mag exclude \\
+            ${from_type_arg} \\
             ${reference_arg} \\
             ${atypical_arg} \\
             ${annotated_arg} \\
             ${api_key_arg} \\
             --as-json-lines \\
-            > assembly_summary.jsonl 2>>summary.err && [ -s assembly_summary.jsonl ]; then
-            echo "WARN: NCBI has no assemblies for GTDB genus '\$genus'; using '\$stripped'" >&2
-            resolve_genus="\$stripped"
-        else
-            echo "SKIP: NCBI has no ${params.assembly_source} assemblies for taxon '\$genus'." >&2
-            cat summary.err >&2
-            exit 4
+            "\$@" \\
+            > assembly_summary.jsonl 2> summary.try.err
+        cat summary.try.err >> summary.err
+        [ -s assembly_summary.jsonl ]
+    }
+
+    try_summary() {
+        taxon="\$1"
+        shift
+        echo "NCBI summary: taxon='\$taxon' \$*" >&2
+        if run_datasets_summary "\$taxon" "\$@"; then
+            return 0
         fi
+        if grep -q "more than one taxid" summary.try.err; then
+            taxid=\$(pick_prokaryote_taxid summary.try.err)
+            if [ -n "\$taxid" ]; then
+                echo "WARN: '\$taxon' matches multiple NCBI taxids; using bacterial taxid \$taxid" >&2
+                run_datasets_summary "\$taxid" "\$@"
+                return \$?
+            fi
+        fi
+        return 1
+    }
+
+    resolve_genus=""
+    for taxon in "\$genus" "\$stripped"; do
+        if [ "\$taxon" = "\$resolve_genus" ] || [ -z "\$taxon" ]; then
+            continue
+        fi
+        if try_summary "\$taxon" --assembly-level ${params.assembly_level}; then
+            resolve_genus="\$taxon"
+            break
+        fi
+        # Draft-only type strains (e.g. Mangrovactinospora gilvigrisea) are contig-level
+        if try_summary "\$taxon"; then
+            echo "WARN: no ${params.assembly_level} assemblies for '\$taxon'; including contig-level genomes" >&2
+            resolve_genus="\$taxon"
+            break
+        fi
+        resolve_genus="\$taxon"
+    done
+
+    if [ ! -s assembly_summary.jsonl ] && [ "${params.reference_only}" = "false" ]; then
+        echo "WARN: type-material summary failed; retrying with NCBI reference genomes only" >&2
+        for taxon in "\$genus" "\$stripped"; do
+            if [ -z "\$taxon" ]; then
+                continue
+            fi
+            if try_summary "\$taxon" --reference --assembly-level ${params.assembly_level}; then
+                echo "WARN: NCBI has no type-material package for '\$genus'; using reference genomes of '\$taxon'" >&2
+                resolve_genus="\$taxon"
+                break
+            fi
+        done
+    fi
+
+    if [ ! -s assembly_summary.jsonl ]; then
+        echo "SKIP: NCBI has no ${params.assembly_source} assemblies for taxon '\$genus'." >&2
+        cat summary.err >&2
+        exit 4
+    fi
+
+    if [ "\$resolve_genus" != "\$genus" ]; then
+        echo "WARN: NCBI has no assemblies for GTDB genus '\$genus'; using '\$resolve_genus'" >&2
     fi
 
     dataformat tsv genome \\
@@ -93,18 +155,24 @@ process NCBI_DATASETS_DOWNLOAD {
             is_type = 0
             if (lab) {
                 l = toupper(trim(\$lab))
-                if (l == "TYPE_MATERIAL") is_type = 1
+                if (index(l, "TYPE_MATERIAL") > 0) is_type = 1
             }
             if (disp && index(tolower(trim(\$disp)), "type material") > 0) is_type = 1
             if (is_type) print a > "typed_accessions.txt"
         }
     ' assembly_report.tsv
 
+    # --from-type already restricted the summary; keep those accessions even if
+    # dataformat left the type-material columns empty.
+    if [ ! -s typed_accessions.txt ] && [ -s all_accessions.txt ] && [ "${type_only}" = "1" ]; then
+        cp all_accessions.txt typed_accessions.txt
+    fi
+
     if [ -s typed_accessions.txt ]; then
-        head -n ${params.max_references_per_genus} typed_accessions.txt > accessions.txt
+        head -n ${max_refs} typed_accessions.txt > accessions.txt
     elif [ "${fallback}" = "1" ] && [ -s all_accessions.txt ]; then
         echo "WARN: no type-material assemblies for ${genus}; using fallback accessions" >&2
-        head -n ${params.max_references_per_genus} all_accessions.txt > accessions.txt
+        head -n ${max_refs} all_accessions.txt > accessions.txt
     else
         echo "SKIP: no type-material assemblies for taxon '${genus}'" >&2
         exit 4

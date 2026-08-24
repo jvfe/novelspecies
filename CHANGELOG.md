@@ -11,6 +11,8 @@ Initial release of nf-core/novelspecies, created with the [nf-core](https://nf-c
 
 ### `Fixed`
 
+- NCBI type-strain download now uses `--from-type` and `--limit`, and resolves the *Bacillus* name collision (bacteria taxid 1386 vs walking-stick insects taxid 55087). GTDB suffixes (`Bacillus_A`, `Bacillus_AE`) are stripped only for the NCBI lookup.
+
 ### `Dependencies`
 
 ### `Deprecated`
