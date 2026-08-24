@@ -12,6 +12,7 @@ process NCBI_DATASETS_DOWNLOAD {
     output:
     tuple val(meta), path("references.tsv"), emit: references
     tuple val(meta), path("ref_list.txt") , emit: ref_list
+    tuple val(meta), path("staged_refs")  , emit: staged_refs
     path "versions.yml"                   , emit: versions
 
     when:
@@ -67,12 +68,12 @@ with open("references.tsv", "w", newline="") as out_handle:
     writer.writeheader()
     for row in rows:
         staged = Path("staged_refs") / f"{row['accession']}.fna"
-        row["fasta"] = str(staged.resolve())
+        row["fasta"] = staged.as_posix()
         writer.writerow(row)
 
 with open("ref_list.txt", "w") as handle:
     for row in rows:
-        handle.write(f"{Path(row['fasta'])}\\n")
+        handle.write(f"{row['fasta']}\\n")
 PY
 
     cat <<-END_VERSIONS > versions.yml
@@ -83,9 +84,10 @@ PY
 
     stub:
     """
-    printf 'genus\\taccession\\torganism_name\\tstrain\\tassembly_level\\tgenome_size\\tis_type_strain\\tselection_mode\\tfasta\\n${meta.genus}\\tGCF_STUB.1\\t${meta.genus} sp.\\tTYPE\\tComplete Genome\\t5000000\\ttrue\\ttype_material\\t${meta.genus}_ref.fna\\n' > references.tsv
-    echo '${meta.genus}_ref.fna' > ref_list.txt
-    touch ${meta.genus}_ref.fna
+    mkdir -p staged_refs
+    printf 'genus\\taccession\\torganism_name\\tstrain\\tassembly_level\\tgenome_size\\tis_type_strain\\tselection_mode\\tfasta\\n${meta.genus}\\tGCF_STUB.1\\t${meta.genus} sp.\\tTYPE\\tComplete Genome\\t5000000\\ttrue\\ttype_material\\tstaged_refs/GCF_STUB.1.fna\\n' > references.tsv
+    echo 'staged_refs/GCF_STUB.1.fna' > ref_list.txt
+    touch staged_refs/GCF_STUB.1.fna
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         ncbi-datasets-cli: 18.35.0

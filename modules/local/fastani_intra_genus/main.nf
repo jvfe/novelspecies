@@ -8,7 +8,7 @@ process FASTANI_INTRA_GENUS {
         'quay.io/biocontainers/fastani:1.34--hb66fcc3_7' }"
 
     input:
-    tuple val(meta), path(query_list)
+    tuple val(meta), path(query_list), path(queries)
 
     output:
     tuple val(meta), path("*.tsv"), emit: ani

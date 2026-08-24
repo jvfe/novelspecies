@@ -24,8 +24,8 @@ process REFERENCE_SHEET_TO_MANIFEST {
     stub:
     """
     mkdir -p genus_manifests/TestGenus/staged_refs
-    printf 'genus\\taccession\\torganism_name\\tstrain\\tassembly_level\\tgenome_size\\tis_type_strain\\tselection_mode\\tfasta\\nTestGenus\\tGCF_TYPE.1\\tTestGenus type strain\\tTYPE\\tComplete Genome\\t5000000\\ttrue\\treference_sheet\\tgenus_manifests/TestGenus/staged_refs/GCF_TYPE.1.fna\\n' > genus_manifests/TestGenus/references.tsv
-    echo 'genus_manifests/TestGenus/staged_refs/GCF_TYPE.1.fna' > genus_manifests/TestGenus/ref_list.txt
+    printf 'genus\\taccession\\torganism_name\\tstrain\\tassembly_level\\tgenome_size\\tis_type_strain\\tselection_mode\\tfasta\\nTestGenus\\tGCF_TYPE.1\\tTestGenus type strain\\tTYPE\\tComplete Genome\\t5000000\\ttrue\\treference_sheet\\tstaged_refs/GCF_TYPE.1.fna\\n' > genus_manifests/TestGenus/references.tsv
+    echo 'staged_refs/GCF_TYPE.1.fna' > genus_manifests/TestGenus/ref_list.txt
     touch genus_manifests/TestGenus/staged_refs/GCF_TYPE.1.fna
     """
 }

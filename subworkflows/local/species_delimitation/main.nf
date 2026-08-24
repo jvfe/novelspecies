@@ -99,10 +99,9 @@ workflow SPECIES_DELIMITATION {
         }
 
     PREPARE_QUERY_LIST(
-        ch_by_genus
-            .map { meta, _metas, _fastas -> meta }
-            .combine(ASSIGN_GENUS.out.assignments)
-            .map { meta, assignments -> [ meta, assignments ] }
+        ch_by_genus.map { meta, metas, fastas ->
+            [ meta, metas.collect { it.id }, fastas ]
+        }
     )
 
     //
@@ -134,13 +133,14 @@ workflow SPECIES_DELIMITATION {
                 .collect { genus_dir ->
                     def genus = genus_dir.name
                     def meta = [ id: genus.replaceAll('\\s+', '_'), genus: genus ]
-                    [ meta, file("${genus_dir}/references.tsv"), file("${genus_dir}/ref_list.txt") ]
+                    [ meta, file("${genus_dir}/references.tsv"), file("${genus_dir}/ref_list.txt"), file("${genus_dir}/staged_refs") ]
                 }
         }
 
     ch_reference_tables_from_ncbi = NCBI_DATASETS_DOWNLOAD.out.references
         .join(NCBI_DATASETS_DOWNLOAD.out.ref_list)
-        .map { meta, references, ref_list -> [ meta, references, ref_list ] }
+        .join(NCBI_DATASETS_DOWNLOAD.out.staged_refs)
+        .map { meta, references, ref_list, staged_refs -> [ meta, references, ref_list, staged_refs ] }
 
     ch_reference_tables = ch_reference_tables_from_sheet
         .mix(ch_reference_tables_from_ncbi)
@@ -150,8 +150,8 @@ workflow SPECIES_DELIMITATION {
     //
     ch_fastani_input = PREPARE_QUERY_LIST.out.query_list
         .join(ch_reference_tables)
-        .map { meta, query_list, references, ref_list ->
-            [ meta, query_list, ref_list, references ]
+        .map { meta, query_list, queries, references, ref_list, staged_refs ->
+            [ meta, query_list, queries, ref_list, staged_refs ]
         }
 
     FASTANI_QUERY_VS_REFERENCE(
@@ -191,7 +191,7 @@ workflow SPECIES_DELIMITATION {
     // Digital DDH on top-N references from FastANI
     //
     ch_all_references = ch_reference_tables
-        .map { _meta, references, _ref_list -> references }
+        .map { _meta, references, _ref_list, _staged_refs -> references }
         .collect()
 
     ch_select_ddh_ani = params.skip_ddh
@@ -219,6 +219,20 @@ workflow SPECIES_DELIMITATION {
         ? ch_ddh_pairs
         : channel.empty()
 
+    ch_query_fasta_by_sample = PREPARE_QUERY_LIST.out.query_list
+        .flatMap { _meta, _query_list, queries_dir ->
+            queries_dir.listFiles()
+                .findAll { it.name.endsWith('.fna') }
+                .collect { fasta -> [ fasta.baseName, fasta ] }
+        }
+
+    ch_ref_fasta_by_accession = ch_reference_tables
+        .flatMap { _meta, _references, _ref_list, staged_refs ->
+            staged_refs.listFiles()
+                .findAll { it.name.endsWith('.fna') }
+                .collect { fasta -> [ fasta.baseName, fasta ] }
+        }
+
     ch_ddh_jobs = ch_ddh_pairs_for_local
         .splitCsv(sep: '\t', header: true)
         .map { row ->
@@ -229,7 +243,15 @@ workflow SPECIES_DELIMITATION {
                 ref_organism: row.ref_organism,
                 single_end: true,
             ]
-            [ meta, file(row.query_fasta), file(row.reference_fasta) ]
+            [ row.sample, row.ref_accession, meta ]
+        }
+        .combine(ch_query_fasta_by_sample, by: 0)
+        .map { sample, ref_accession, meta, query_fasta ->
+            [ ref_accession, meta, query_fasta ]
+        }
+        .combine(ch_ref_fasta_by_accession, by: 0)
+        .map { _ref_accession, meta, query_fasta, reference_fasta ->
+            [ meta, query_fasta, reference_fasta ]
         }
 
     GBDP_DDH(

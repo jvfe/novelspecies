@@ -8,7 +8,7 @@ process FASTANI_QUERY_VS_REFERENCE {
         'quay.io/biocontainers/fastani:1.34--hb66fcc3_7' }"
 
     input:
-    tuple val(meta), path(query_list), path(ref_list), path(references)
+    tuple val(meta), path(query_list), path(queries), path(ref_list), path(staged_refs)
 
     output:
     tuple val(meta), path("*.tsv"), emit: ani

@@ -8,23 +8,32 @@ process PREPARE_QUERY_LIST {
         'quay.io/biocontainers/pandas:2.2.1' }"
 
     input:
-    tuple val(meta), path(assignments)
+    tuple val(meta), val(sample_ids), path(fastas)
 
     output:
-    tuple val(meta), path("query_list.txt"), emit: query_list
+    tuple val(meta), path("query_list.txt"), path("queries"), emit: query_list
 
     script:
+    def samples = sample_ids instanceof List ? sample_ids : [sample_ids]
+    def fasta_files = fastas instanceof List ? fastas : [fastas]
+    def mapping = [samples, fasta_files].transpose().collect { id, fasta -> "${id}\t${fasta.name}" }.join('\n')
     """
+    cat > sample_map.tsv <<'EOF'
+sample	fasta_name
+${mapping}
+EOF
+
     prepare_query_list.py \\
-        --assignments ${assignments} \\
-        --genus "${meta.genus}" \\
+        --mapping sample_map.tsv \\
         --output query_list.txt
     """
 
     stub:
+    def samples = sample_ids instanceof List ? sample_ids : [sample_ids]
+    def first = samples[0]
     """
     mkdir -p queries
-    echo "queries/query.fna" > query_list.txt
-    touch queries/query.fna
+    echo "queries/${first}.fna" > query_list.txt
+    touch queries/${first}.fna
     """
 }

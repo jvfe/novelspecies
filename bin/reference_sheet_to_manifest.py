@@ -56,7 +56,7 @@ def main() -> None:
                     "genome_size": row.get("genome_size", "").strip(),
                     "is_type_strain": row.get("is_type_strain", "true").strip(),
                     "selection_mode": "reference_sheet",
-                    "fasta": str(dst.resolve()),
+                    "fasta": f"staged_refs/{accession}.fna",
                 }
             )
 
