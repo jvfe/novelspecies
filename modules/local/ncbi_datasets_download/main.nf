@@ -26,7 +26,17 @@ process NCBI_DATASETS_DOWNLOAD {
     def type_only     = params.type_material_only ? '1' : '0'
     def fallback      = params.allow_non_type_fallback ? '1' : '0'
     """
-    datasets summary genome taxon "${genus}" \\
+    genus="${genus}"
+    # GTDB placeholder genera (WGS project IDs) are not NCBI taxa, e.g. CAJYPV01, JAADFP01
+    if echo "\$genus" | grep -Eq '^[A-Z]{2,10}[0-9]{2,}\$|^UBA[0-9]+\$|^GCA-[0-9]+\$'; then
+        echo "SKIP: '\$genus' is a GTDB placeholder genus (WGS/MAG identifier), not an NCBI taxon." >&2
+        echo "      Provide a --reference_sheet for this lineage, or drop those queries." >&2
+        exit 4
+    fi
+
+    resolve_genus="\$genus"
+    summary_ok=0
+    if datasets summary genome taxon "\$resolve_genus" \\
         --assembly-source ${params.assembly_source} \\
         --assembly-level ${params.assembly_level} \\
         ${reference_arg} \\
@@ -34,11 +44,28 @@ process NCBI_DATASETS_DOWNLOAD {
         ${annotated_arg} \\
         ${api_key_arg} \\
         --as-json-lines \\
-        > assembly_summary.jsonl
+        > assembly_summary.jsonl 2>summary.err; then
+        summary_ok=1
+    fi
 
-    if [ ! -s assembly_summary.jsonl ]; then
-        echo "ERROR: NCBI returned no assemblies for taxon '${genus}'" >&2
-        exit 1
+    if [ "\$summary_ok" -ne 1 ] || [ ! -s assembly_summary.jsonl ]; then
+        stripped=\$(echo "\$genus" | sed 's/_[A-Z]\$//')
+        if [ "\$stripped" != "\$genus" ] && datasets summary genome taxon "\$stripped" \\
+            --assembly-source ${params.assembly_source} \\
+            --assembly-level ${params.assembly_level} \\
+            ${reference_arg} \\
+            ${atypical_arg} \\
+            ${annotated_arg} \\
+            ${api_key_arg} \\
+            --as-json-lines \\
+            > assembly_summary.jsonl 2>>summary.err && [ -s assembly_summary.jsonl ]; then
+            echo "WARN: NCBI has no assemblies for GTDB genus '\$genus'; using '\$stripped'" >&2
+            resolve_genus="\$stripped"
+        else
+            echo "SKIP: NCBI has no ${params.assembly_source} assemblies for taxon '\$genus'." >&2
+            cat summary.err >&2
+            exit 4
+        fi
     fi
 
     dataformat tsv genome \\
@@ -79,8 +106,8 @@ process NCBI_DATASETS_DOWNLOAD {
         echo "WARN: no type-material assemblies for ${genus}; using fallback accessions" >&2
         head -n ${params.max_references_per_genus} all_accessions.txt > accessions.txt
     else
-        echo "ERROR: no type-material assemblies for taxon '${genus}'" >&2
-        exit 1
+        echo "SKIP: no type-material assemblies for taxon '${genus}'" >&2
+        exit 4
     fi
 
     datasets download genome accession \\
